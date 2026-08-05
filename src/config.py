@@ -28,14 +28,29 @@ class S3Endpoint:
     region: str
 
 
+def _default_meta_key(dest_key):
+    directory = dest_key.rsplit("/", 1)[0] if "/" in dest_key else ""
+    return f"{directory}/meta.json" if directory else "meta.json"
+
+
 @dataclass(frozen=True)
 class Config:
     source: S3Endpoint
     dest: S3Endpoint
     dest_key: str
+    dest_meta_key: str
+    version: str
     poll_interval_seconds: int
     health_port: int
     log_level: str
+
+
+def _read_version(version_file):
+    try:
+        with open(version_file) as f:
+            return f.read().strip()
+    except OSError:
+        return "unknown"
 
 
 def load() -> Config:
@@ -55,10 +70,13 @@ def load() -> Config:
         addressing_style=_optional("DEST_S3_ADDRESSING_STYLE", "virtual"),
         region=_optional("DEST_S3_REGION", "us-east-1"),
     )
+    dest_key = _optional("DEST_S3_KEY", "usage.parquet")
     return Config(
         source=source,
         dest=dest,
-        dest_key=_optional("DEST_S3_KEY", "usage.parquet"),
+        dest_key=dest_key,
+        dest_meta_key=_optional("DEST_S3_META_KEY", _default_meta_key(dest_key)),
+        version=_read_version(_optional("VERSION_FILE", "VERSION")),
         poll_interval_seconds=int(_optional("POLL_INTERVAL_SECONDS", "3600")),
         health_port=int(_optional("HEALTH_PORT", "8080")),
         log_level=_optional("LOG_LEVEL", "INFO"),

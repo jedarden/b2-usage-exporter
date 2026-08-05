@@ -37,6 +37,7 @@ container at runtime.
         |                  write to a single Parquet file
         v                   v
    DEST_S3_*   <--upload-- usage.parquet
+                            + meta.json (version, generated_at)
 ```
 
 - No persistent state, no database, no PVC. Each cycle re-lists and
@@ -57,8 +58,10 @@ container at runtime.
 - `src/reports.py` — talks to the *source* S3-compatible endpoint: lists
   date-prefixed folders, downloads and parses the Usage Report CSVs into
   row dicts.
-- `src/exporter.py` — builds the Parquet file from collected rows and
-  uploads it to the *destination* S3-compatible endpoint.
+- `src/exporter.py` — builds the Parquet file from collected rows, uploads
+  it to the *destination* S3-compatible endpoint, and writes a `meta.json`
+  provenance sidecar (this build's version + a UTC generation timestamp)
+  alongside it every cycle — see `docs/notes/configuration.md`.
 - `src/main.py` — entrypoint: wires config → reports → exporter into the
   poll loop, plus the health server.
 
@@ -83,10 +86,11 @@ summary rows) are dropped — only per-bucket rows are kept.
 ## Implementation Phases
 
 - [x] Phase 1: Repo scaffolded
-- [ ] Phase 2: Config loading + source report listing/parsing
-- [ ] Phase 3: Parquet build + destination upload
-- [ ] Phase 4: Poll loop + health server, containerized
-- [ ] Phase 5: CI wired (declarative-config), deployed
+- [x] Phase 2: Config loading + source report listing/parsing
+- [x] Phase 3: Parquet build + destination upload
+- [x] Phase 4: Poll loop + health server, containerized
+- [x] Phase 5: CI wired (declarative-config), deployed — verified live 2026-08-05
+- [x] Phase 6: `meta.json` provenance sidecar (version + generated_at), for dashboards to display
 
 ## Open Questions
 

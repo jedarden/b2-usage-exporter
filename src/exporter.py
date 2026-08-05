@@ -1,5 +1,7 @@
 import io
+import json
 import logging
+from datetime import datetime, timezone
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -34,3 +36,18 @@ def upload(endpoint: S3Endpoint, key: str, data: bytes):
     s3 = s3_client(endpoint)
     s3.put_object(Bucket=endpoint.bucket, Key=key, Body=data, ContentType="application/octet-stream")
     log.info("uploaded %d bytes to s3://%s/%s", len(data), endpoint.bucket, key)
+
+
+def meta_bytes(version: str) -> bytes:
+    # Explicit "Z" suffix, not a naive isoformat() -- a timestamp with no UTC
+    # offset gets misread as local time by browsers, making recent
+    # generation times appear to be in the future.
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return json.dumps({"version": version, "generated_at": generated_at}).encode("utf-8")
+
+
+def upload_meta(endpoint: S3Endpoint, key: str, version: str):
+    s3 = s3_client(endpoint)
+    data = meta_bytes(version)
+    s3.put_object(Bucket=endpoint.bucket, Key=key, Body=data, ContentType="application/json")
+    log.info("uploaded meta to s3://%s/%s", endpoint.bucket, key)

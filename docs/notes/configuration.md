@@ -23,6 +23,7 @@ real account, bucket, or endpoint — this repo is public.
 | `DEST_S3_SECRET_ACCESS_KEY` | yes | | |
 | `DEST_S3_BUCKET` | yes | | |
 | `DEST_S3_KEY` | no | `usage.parquet` | full object key within the bucket — include any prefix here, e.g. `b2-usage/data/usage.parquet` |
+| `DEST_S3_META_KEY` | no | same directory as `DEST_S3_KEY`, filename `meta.json` | where the provenance sidecar (see below) is written |
 | `DEST_S3_ADDRESSING_STYLE` | no | `virtual` | some S3-compatible servers (e.g. Garage) require `path` — no per-bucket virtual-host DNS |
 | `DEST_S3_REGION` | no | `us-east-1` | |
 
@@ -33,3 +34,19 @@ real account, bucket, or endpoint — this repo is public.
 | `POLL_INTERVAL_SECONDS` | no | `3600` | source data changes at most once/day upstream; hourly is already generous |
 | `HEALTH_PORT` | no | `8080` | serves `GET /health` → `200 OK` once the first successful cycle has completed |
 | `LOG_LEVEL` | no | `INFO` | standard Python logging levels |
+| `VERSION_FILE` | no | `VERSION` | path to a file containing this build's semver, embedded in `meta.json` (see below) — the Dockerfile copies the repo's `VERSION` file to this path by default |
+
+## Provenance sidecar (`meta.json`)
+
+Every cycle, alongside the Parquet file, the exporter writes a small JSON
+object to `DEST_S3_META_KEY`:
+
+```json
+{"version": "0.1.1", "generated_at": "2026-08-05T21:40:00Z"}
+```
+
+`generated_at` is always UTC with an explicit `Z` suffix — never a naive
+timestamp, which browsers misread as local time and can make a just-generated
+file appear to be from the future. A consuming dashboard should fetch this
+alongside the data file and display both, so viewers can tell which build
+produced what they're looking at and how fresh it is.

@@ -2,7 +2,6 @@ import logging
 import signal
 import sys
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import config, exporter, reports
@@ -35,6 +34,7 @@ def _run_cycle(cfg: config.Config):
     rows = reports.fetch_all_rows(cfg.source)
     data = exporter.rows_to_parquet_bytes(rows)
     exporter.upload(cfg.dest, cfg.dest_key, data)
+    exporter.upload_meta(cfg.dest, cfg.dest_meta_key, cfg.version)
 
 
 def main():
