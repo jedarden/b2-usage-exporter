@@ -34,7 +34,7 @@ def _run_cycle(cfg: config.Config):
     rows = reports.fetch_all_rows(cfg.source)
     data = exporter.rows_to_parquet_bytes(rows)
     exporter.upload(cfg.dest, cfg.dest_key, data)
-    exporter.upload_meta(cfg.dest, cfg.dest_meta_key, cfg.version)
+    exporter.upload_meta(cfg.dest, cfg.dest_meta_key, cfg.version, len(data))
 
 
 def main():
